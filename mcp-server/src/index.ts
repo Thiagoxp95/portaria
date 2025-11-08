@@ -44,11 +44,21 @@ app.get("/", (req, res) => {
     status: "ok",
     message: "Portaria MCP Server is running",
     version: "1.0.0",
-    protocol: "MCP 2024-11-05",
-    transport: "SSE",
+    protocols: ["2024-11-05", "2025-03-26"],
+    transports: ["SSE (legacy)", "Streamable HTTP (recommended)"],
     endpoints: {
-      sse: `${req.protocol}://${req.get("host")}/sse`,
-      message: `${req.protocol}://${req.get("host")}/message?sessionId=<generated>`,
+      mcp: {
+        url: `${req.protocol}://${req.get("host")}/mcp`,
+        transport: "Streamable HTTP",
+        protocol: "2025-03-26",
+        recommended: true,
+      },
+      sse: {
+        url: `${req.protocol}://${req.get("host")}/sse`,
+        transport: "SSE",
+        protocol: "2024-11-05",
+        legacy: true,
+      },
       health: `${req.protocol}://${req.get("host")}/health`,
     },
     tools: [
@@ -57,9 +67,13 @@ app.get("/", (req, res) => {
       "get_consent_status",
     ],
     instructions: {
-      "For ElevenLabs": "Use the SSE endpoint URL as your server URL",
-      "Test SSE": `curl -N ${req.protocol}://${req.get("host")}/sse`,
-      "Test Initialize": `curl -X POST "${req.protocol}://${req.get("host")}/message?sessionId=test" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'`,
+      "For ElevenLabs (Recommended)":
+        'Select "Streamable HTTP" and use: ' +
+        `${req.protocol}://${req.get("host")}/mcp`,
+      "For ElevenLabs (Legacy)":
+        'Select "SSE" and use: ' +
+        `${req.protocol}://${req.get("host")}/sse`,
+      "Test Streamable HTTP": `curl -X POST "${req.protocol}://${req.get("host")}/mcp" -H "Content-Type: application/json" -H "Accept: application/json" -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'`,
     },
   });
 });

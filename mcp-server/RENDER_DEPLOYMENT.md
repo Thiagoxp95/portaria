@@ -125,17 +125,27 @@ data: https://portaria-mcp-server.onrender.com/message
 
 ## Step 8: Configure ElevenLabs
 
+### Recommended: Streamable HTTP (MCP 2025-03-26)
+
 1. Go to **ElevenLabs Dashboard**
 2. Navigate to **Your Agent** → **Integrations**
 3. Click **"Add Custom MCP Server"**
 4. Fill in:
    - **Name**: Portaria WhatsApp Consent
    - **Description**: Manages visitor consent via WhatsApp
-   - **Server Type**: SSE
-   - **Server URL**: `https://portaria-mcp-server.onrender.com/sse`
+   - **Server Type**: **Streamable HTTP** ⭐ (recommended)
+   - **Server URL**: `https://portaria-mcp-server.onrender.com/mcp`
    - **Secret Token**: (leave empty)
 5. Click **"Save"**
 6. Test the connection!
+
+### Alternative: SSE (Legacy - MCP 2024-11-05)
+
+If you prefer the legacy SSE transport:
+   - **Server Type**: SSE
+   - **Server URL**: `https://portaria-mcp-server.onrender.com/sse`
+
+**Note**: Streamable HTTP is the current MCP standard (2025-03-26) and is recommended for new integrations.
 
 ## Step 9: Keep Service Awake (Optional)
 
