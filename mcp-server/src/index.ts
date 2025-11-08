@@ -102,6 +102,8 @@ app.get("/sse", (req, res) => {
 // Message endpoint - handles MCP protocol messages
 app.post("/message", async (req, res) => {
   const sessionId = req.query.sessionId;
+  const startTime = Date.now();
+
   try {
     console.log(
       `[MCP] Received request (sessionId: ${sessionId}):`,
@@ -109,12 +111,22 @@ app.post("/message", async (req, res) => {
     );
 
     const response = await handleMCPRequest(req.body);
+    const duration = Date.now() - startTime;
 
-    console.log(`[MCP] Sending response:`, JSON.stringify(response, null, 2));
+    // Notifications don't get responses (response will be null)
+    if (response === null) {
+      console.log(`[MCP] Notification processed (${duration}ms), no response needed`);
+      res.status(204).end();
+      return;
+    }
+
+    console.log(`[MCP] Sending response (${duration}ms):`, JSON.stringify(response, null, 2));
 
     res.json(response);
+    console.log(`[MCP] Response sent successfully for sessionId: ${sessionId}`);
   } catch (error) {
-    console.error("[MCP] Error handling request:", error);
+    const duration = Date.now() - startTime;
+    console.error(`[MCP] Error handling request (${duration}ms):`, error);
 
     res.status(500).json({
       jsonrpc: "2.0",

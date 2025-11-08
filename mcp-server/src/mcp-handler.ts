@@ -273,20 +273,37 @@ export async function handleMCPRequest(request: {
           ? clientVersion
           : "2024-11-05";
 
+        // Capabilities vary by protocol version
+        const capabilities =
+          protocolVersion === "2025-03-26"
+            ? {
+                tools: {
+                  listChanged: true,
+                },
+              }
+            : {
+                tools: {},
+              };
+
         return {
           jsonrpc: "2.0",
           id,
           result: {
             protocolVersion,
-            capabilities: {
-              tools: {},
-            },
+            capabilities,
             serverInfo: {
               name: "whatsapp-consent-server",
               version: "1.0.0",
             },
           },
         };
+      }
+
+      case "notifications/initialized":
+      case "initialized": {
+        // Client notification that it's ready - no response needed for notifications
+        console.log("[MCP] Client sent initialized notification");
+        return null;
       }
 
       case "tools/list": {
@@ -300,7 +317,7 @@ export async function handleMCPRequest(request: {
       }
 
       case "tools/call": {
-        const { name, arguments: args } = params as {
+        const { name, arguments: args} = params as {
           name: string;
           arguments?: unknown;
         };
