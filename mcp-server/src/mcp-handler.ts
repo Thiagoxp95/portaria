@@ -264,11 +264,20 @@ export async function handleMCPRequest(request: {
   try {
     switch (method) {
       case "initialize": {
+        // Support the client's protocol version if we recognize it
+        const clientVersion =
+          (params as { protocolVersion?: string })?.protocolVersion ||
+          "2024-11-05";
+        const supportedVersions = ["2024-11-05", "2025-03-26"];
+        const protocolVersion = supportedVersions.includes(clientVersion)
+          ? clientVersion
+          : "2024-11-05";
+
         return {
           jsonrpc: "2.0",
           id,
           result: {
-            protocolVersion: "2024-11-05",
+            protocolVersion,
             capabilities: {
               tools: {},
             },
