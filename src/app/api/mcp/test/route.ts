@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /**
  * Simple test endpoint to verify MCP SSE server is reachable
  * Visit: http://localhost:3000/api/mcp/test
