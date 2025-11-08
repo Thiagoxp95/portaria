@@ -7,17 +7,17 @@ export const residents = sqliteTable(
   "resident",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    apartmentNumber: text("apartment_number", { length: 100 })
+    apartmentNumber: text("apartmentNumber", { length: 100 })
       .notNull()
       .unique(),
-    phoneNumber: text("phone_number", { length: 50 }).notNull(),
-    residentName: text("resident_name", { length: 255 }),
+    phoneNumber: text("phoneNumber", { length: 50 }).notNull(),
+    residentName: text("residentName", { length: 255 }),
     notes: text("notes", { length: 500 }),
-    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    isActive: integer("isActive", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("createdAt", { mode: "timestamp" })
       .default(sql`(unixepoch())`)
       .notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).$onUpdateFn(
+    updatedAt: integer("updatedAt", { mode: "timestamp" }).$onUpdateFn(
       () => new Date(),
     ),
   },
@@ -31,10 +31,10 @@ export const residents = sqliteTable(
 export const whatsappConsents = sqliteTable(
   "whatsapp_consent",
   {
-    conversationSid: text("conversation_sid", { length: 255 })
+    conversationSid: text("conversationSid", { length: 255 })
       .notNull()
       .primaryKey(),
-    toNumber: text("to_number", { length: 50 }).notNull(),
+    toNumber: text("toNumber", { length: 50 }).notNull(),
     apt: text("apt", { length: 100 }).notNull(),
     visitor: text("visitor", { length: 255 }).notNull(),
     company: text("company", { length: 255 }).notNull(),
@@ -42,14 +42,14 @@ export const whatsappConsents = sqliteTable(
       .notNull()
       .default("pending")
       .$type<"pending" | "approved" | "denied" | "no_answer" | "failed">(),
-    lastMsgSid: text("last_msg_sid", { length: 255 }),
-    decidedAt: integer("decided_at", { mode: "timestamp" }),
+    lastMsgSid: text("lastMsgSid", { length: 255 }),
+    decidedAt: integer("decidedAt", { mode: "timestamp" }),
     transcript: text("transcript"),
-    ttlSeconds: integer("ttl_seconds").notNull().default(300),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    ttlSeconds: integer("ttlSeconds").notNull().default(300),
+    createdAt: integer("createdAt", { mode: "timestamp" })
       .default(sql`(unixepoch())`)
       .notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).$onUpdateFn(
+    updatedAt: integer("updatedAt", { mode: "timestamp" }).$onUpdateFn(
       () => new Date(),
     ),
   },
