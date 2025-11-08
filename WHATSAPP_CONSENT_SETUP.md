@@ -107,7 +107,70 @@ The migration has already been applied. The `whatsapp_consent` table includes:
 | `createdAt` | INTEGER | Creation timestamp |
 | `updatedAt` | INTEGER | Update timestamp |
 
-## Step 5: Usage
+## Step 5: Configure Residents Directory
+
+Before using the consent system with ElevenLabs, you need to register residents and their phone numbers.
+
+### Option 1: Using the Web UI (Easiest)
+
+1. Visit your deployed application at `/`
+2. Scroll to the "Residents Directory" section
+3. Click "+ Add Resident"
+4. Fill in the form:
+   - **Apartment Number**: e.g., "1507", "23B", "101"
+   - **Phone Number**: e.g., "+5511999999999" (with country code)
+   - **Resident Name** (optional): e.g., "John Doe"
+   - **Notes** (optional): Any additional information
+5. Click "Add Resident"
+6. Test the lookup using the "Test Apartment Lookup" section
+
+### Option 2: Using tRPC API
+
+```typescript
+import { api } from "~/trpc/server";
+
+// Add a resident
+await api.resident.addResident({
+  apartmentNumber: "1507",
+  phoneNumber: "+5511999999999",
+  residentName: "John Doe", // optional
+  notes: "Building A, 15th floor", // optional
+});
+
+// Lookup a resident by apartment
+const resident = await api.resident.getPhoneByApartment({
+  apartmentNumber: "1507",
+});
+console.log(resident.phoneNumber); // "+5511999999999"
+```
+
+### Managing Residents
+
+**Update a resident:**
+```typescript
+await api.resident.updateResident({
+  apartmentNumber: "1507",
+  phoneNumber: "+5511888888888", // new phone
+  residentName: "Jane Smith",
+});
+```
+
+**Deactivate a resident** (without deleting):
+```typescript
+await api.resident.updateResident({
+  apartmentNumber: "1507",
+  isActive: false,
+});
+```
+
+**Delete a resident:**
+```typescript
+await api.resident.deleteResident({
+  apartmentNumber: "1507",
+});
+```
+
+## Step 6: Usage
 
 ### A. Using tRPC API (Recommended for Internal Use)
 
@@ -282,24 +345,58 @@ If using Option 2 (tRPC directly), configure custom HTTP tools instead:
 ```
 When a visitor arrives:
 1. Greet the visitor and ask for their name and company
-2. Ask which apartment they're visiting
-3. Call start_whatsapp_consent with the collected information
-4. Save the conversationSid from the response
-5. Inform the visitor: "I'm sending a WhatsApp message to the resident. Please wait."
-6. Wait 10 seconds, then call get_consent_status
-7. If status is "pending", tell visitor "Still waiting for response..." and wait another 10 seconds
-8. Repeat checking every 10 seconds for up to 5 minutes (30 attempts)
+2. Ask "Which apartment are you visiting?"
+3. Call get_phone_by_apartment with the apartment number they provide
+4. If the apartment is found:
+   a. You'll receive the resident's phone number automatically
+   b. Call start_whatsapp_consent with:
+      - to: the phone number from step 3
+      - apt: the apartment number
+      - visitor: the visitor's name
+      - company: the company name
+   c. Save the conversationSid from the response
+   d. Inform the visitor: "I'm sending a WhatsApp message to the resident in apartment [number]. Please wait."
+5. If the apartment is NOT found:
+   a. Say "I don't have a registered resident for apartment [number]."
+   b. Ask: "Do you have the resident's phone number?"
+   c. If they provide it, use that number with start_whatsapp_consent
+   d. If not, suggest they contact the building management
+6. Wait 10 seconds, then call get_consent_status with the conversationSid
+7. If status is "pending", tell visitor "Still waiting for the resident's response..." and wait another 10 seconds
+8. Repeat checking every 10 seconds for up to 5 minutes (30 attempts total)
 9. If status is "approved", say "Entry approved! Please proceed to apartment [number]."
 10. If status is "denied", say "I'm sorry, the resident has denied entry."
-11. If status is "no_answer" after timeout, say "The resident hasn't responded. Please try calling them directly."
+11. If status is "no_answer" after timeout, say "The resident hasn't responded. Please try calling them directly or contact building management."
+
+Important notes:
+- ALWAYS use get_phone_by_apartment first before asking the visitor for a phone number
+- Only ask for phone number if the apartment lookup fails
+- Be polite and clear when explaining wait times to visitors
+- Provide helpful alternatives if consent is denied or times out
 ```
 
 #### 7. Available MCP Tools
 
+**Tool: `get_phone_by_apartment`** (NEW!)
+```typescript
+{
+  "apartmentNumber": "1507"    // Apartment number to lookup
+}
+```
+**Returns:**
+```typescript
+{
+  "apartmentNumber": "1507",
+  "phoneNumber": "+5511999999999",
+  "residentName": "John Doe",   // Optional, may be null
+  "message": "Resident information retrieved successfully"
+}
+```
+
 **Tool: `start_whatsapp_consent`**
 ```typescript
 {
-  "to": "+5511999999999",      // Phone with country code
+  "to": "+5511999999999",      // Phone with country code (use phoneNumber from get_phone_by_apartment)
   "apt": "1507",               // Apartment number
   "visitor": "John Doe",       // Visitor name
   "company": "Amazon",         // Company name
@@ -339,7 +436,7 @@ The webhook at `/api/webhooks/twilio/whatsapp` automatically processes user repl
 - não, nao (Portuguese)
 - non (French)
 
-## Step 6: Timeout Job (Handling No Response)
+## Step 7: Timeout Job (Handling No Response)
 
 Run the timeout checker periodically to mark expired requests as `no_answer`:
 
