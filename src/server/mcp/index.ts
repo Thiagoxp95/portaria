@@ -15,7 +15,7 @@ import {
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "~/server/db/index.js";
-import { whatsappConsents } from "~/server/db/schema.js";
+import { whatsappConsents, residents } from "~/server/db/schema.js";
 import { sendWhatsAppConsent } from "~/server/services/twilio.js";
 
 /**
@@ -43,8 +43,27 @@ const getConsentStatusSchema = z.object({
     .describe("The conversation SID returned from start_whatsapp_consent"),
 });
 
+const getPhoneByApartmentSchema = z.object({
+  apartmentNumber: z.string().describe("The apartment number to look up"),
+});
+
 // Define tools
 const tools: Tool[] = [
+  {
+    name: "get_phone_by_apartment",
+    description:
+      "Gets the resident's phone number for a given apartment number. Use this BEFORE sending a consent request if you only know the apartment number.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        apartmentNumber: {
+          type: "string",
+          description: "The apartment number (e.g., '1507', '23B')",
+        },
+      },
+      required: ["apartmentNumber"],
+    },
+  },
   {
     name: "start_whatsapp_consent",
     description:
@@ -119,6 +138,60 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
+      case "get_phone_by_apartment": {
+        const input = getPhoneByApartmentSchema.parse(args);
+        const { apartmentNumber } = input;
+
+        // Query resident by apartment number
+        const resident = await db.query.residents.findFirst({
+          where: eq(residents.apartmentNumber, apartmentNumber),
+        });
+
+        if (!resident) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  error: `No resident found for apartment ${apartmentNumber}`,
+                  apartmentNumber,
+                }),
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        if (!resident.isActive) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  error: `Resident for apartment ${apartmentNumber} is inactive`,
+                  apartmentNumber,
+                }),
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                apartmentNumber: resident.apartmentNumber,
+                phoneNumber: resident.phoneNumber,
+                residentName: resident.residentName,
+                message: "Resident information retrieved successfully",
+              }),
+            },
+          ],
+        };
+      }
+
       case "start_whatsapp_consent": {
         const input = startConsentSchema.parse(args);
         const { to, apt, visitor, company, ttl } = input;

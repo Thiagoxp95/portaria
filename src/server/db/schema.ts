@@ -133,6 +133,28 @@ export const verification = sqliteTable(
   (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
 
+// Residents table - maps apartment numbers to phone numbers
+export const residents = sqliteTable(
+  "resident",
+  (d) => ({
+    id: d.integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
+    apartmentNumber: d.text({ length: 100 }).notNull().unique(),
+    phoneNumber: d.text({ length: 50 }).notNull(),
+    residentName: d.text({ length: 255 }),
+    notes: d.text({ length: 500 }),
+    isActive: d.integer({ mode: "boolean" }).notNull().default(true),
+    createdAt: d
+      .integer({ mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+    updatedAt: d.integer({ mode: "timestamp" }).$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("resident_apartment_idx").on(t.apartmentNumber),
+    index("resident_phone_idx").on(t.phoneNumber),
+  ],
+);
+
 // WhatsApp consent requests table
 export const whatsappConsents = sqliteTable(
   "whatsapp_consent",

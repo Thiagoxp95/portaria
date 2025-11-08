@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { LatestPost } from "~/app/_components/post";
 import { DebugPanel } from "~/app/_components/debug-panel";
+import { ResidentsManager } from "~/app/_components/residents-manager";
 import { auth } from "~/server/better-auth";
 import { getSession } from "~/server/better-auth/server";
 import { api, HydrateClient } from "~/trpc/server";
@@ -24,6 +25,9 @@ export default async function Home() {
             Portaria <span className="text-[hsl(280,100%,70%)]">WhatsApp</span>{" "}
             System
           </h1>
+
+          {/* Residents Management */}
+          <ResidentsManager />
 
           {/* Debug Panel - Main Feature */}
           <DebugPanel />

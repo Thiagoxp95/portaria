@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "~/server/db";
-import { whatsappConsents } from "~/server/db/schema";
+import { whatsappConsents, residents } from "~/server/db/schema";
 import { sendWhatsAppConsent } from "~/server/services/twilio";
 
 export const runtime = "nodejs";
@@ -40,8 +40,27 @@ const getConsentStatusSchema = z.object({
   conversationSid: z.string().describe("Conversation SID from start_whatsapp_consent"),
 });
 
+const getPhoneByApartmentSchema = z.object({
+  apartmentNumber: z.string().describe("The apartment number to look up"),
+});
+
 // MCP Tools definition
 const TOOLS = [
+  {
+    name: "get_phone_by_apartment",
+    description:
+      "Gets the resident's phone number for a given apartment number. Use this BEFORE sending a consent request if you only know the apartment number.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        apartmentNumber: {
+          type: "string",
+          description: "The apartment number (e.g., '1507', '23B')",
+        },
+      },
+      required: ["apartmentNumber"],
+    },
+  },
   {
     name: "start_whatsapp_consent",
     description:
@@ -97,6 +116,34 @@ const TOOLS = [
 async function handleToolCall(toolName: string, args: unknown) {
   try {
     switch (toolName) {
+      case "get_phone_by_apartment": {
+        const input = getPhoneByApartmentSchema.parse(args);
+        const { apartmentNumber } = input;
+
+        const resident = await db.query.residents.findFirst({
+          where: eq(residents.apartmentNumber, apartmentNumber),
+        });
+
+        if (!resident) {
+          throw new Error(
+            `No resident found for apartment ${apartmentNumber}`,
+          );
+        }
+
+        if (!resident.isActive) {
+          throw new Error(
+            `Resident for apartment ${apartmentNumber} is inactive`,
+          );
+        }
+
+        return {
+          apartmentNumber: resident.apartmentNumber,
+          phoneNumber: resident.phoneNumber,
+          residentName: resident.residentName,
+          message: "Resident information retrieved successfully",
+        };
+      }
+
       case "start_whatsapp_consent": {
         const input = startConsentSchema.parse(args);
         const { to, apt, visitor, company, ttl } = input;
