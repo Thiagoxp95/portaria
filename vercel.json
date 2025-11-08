@@ -1,0 +1,10 @@
+{
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "SKIP_ENV_VALIDATION": "1"
+  }
+}
