@@ -1,0 +1,22 @@
+# Exclude MCP server (deployed separately to Render)
+mcp-server/
+
+# Node modules
+node_modules/
+
+# Build outputs
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
