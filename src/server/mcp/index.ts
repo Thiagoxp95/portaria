@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  Tool,
+  type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
@@ -195,7 +195,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 company: consent.company,
                 decidedAt: consent.decidedAt,
                 transcript: consent.transcript
-                  ? JSON.parse(consent.transcript)
+                  ? (JSON.parse(consent.transcript) as unknown[])
                   : [],
               }),
             },

@@ -11,18 +11,18 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    BETTER_AUTH_GITHUB_CLIENT_ID: z.string(),
-    BETTER_AUTH_GITHUB_CLIENT_SECRET: z.string(),
+    BETTER_AUTH_GITHUB_CLIENT_ID: z.string().optional(),
+    BETTER_AUTH_GITHUB_CLIENT_SECRET: z.string().optional(),
     DATABASE_URL: z.string().url(),
     DATABASE_AUTH_TOKEN: z.string(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
     // Twilio configuration
-    TWILIO_ACCOUNT_SID: z.string(),
-    TWILIO_AUTH_TOKEN: z.string(),
-    TWILIO_WHATSAPP_FROM: z.string(), // e.g., whatsapp:+14155238886
-    TWILIO_CONTENT_SID: z.string(), // WhatsApp template SID
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    TWILIO_WHATSAPP_FROM: z.string().optional(), // e.g., whatsapp:+14155238886
+    TWILIO_CONTENT_SID: z.string().optional(), // WhatsApp template SID
     TWILIO_STATUS_WEBHOOK: z.string().url().optional(),
   },
 

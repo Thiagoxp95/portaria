@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db";
 import { whatsappConsents } from "~/server/db/schema";
@@ -15,7 +16,13 @@ export async function POST(request: NextRequest) {
     const body: Record<string, string> = {};
 
     formData.forEach((value, key) => {
-      body[key] = value.toString();
+      if (typeof value === "string") {
+        body[key] = value;
+      } else if (value instanceof File) {
+        body[key] = value.name; // Use filename for File objects
+      } else {
+        body[key] = String(value);
+      }
     });
 
     // Validate Twilio signature
@@ -34,7 +41,6 @@ export async function POST(request: NextRequest) {
     const {
       Body: messageBody,
       From: from,
-      To: to,
       MessageSid: messageSid,
       SmsStatus: status,
       ButtonPayload: buttonPayload,
@@ -95,8 +101,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the consent record
-    const transcript = existingConsent.transcript
-      ? JSON.parse(existingConsent.transcript)
+    const transcript: Array<{
+      type: string;
+      body?: string;
+      buttonPayload?: string;
+      sid?: string;
+      status?: string;
+      timestamp: string;
+      decision?: string;
+    }> = existingConsent.transcript
+      ? (JSON.parse(existingConsent.transcript) as Array<{
+          type: string;
+          body?: string;
+          buttonPayload?: string;
+          sid?: string;
+          status?: string;
+          timestamp: string;
+          decision?: string;
+        }>)
       : [];
 
     transcript.push({

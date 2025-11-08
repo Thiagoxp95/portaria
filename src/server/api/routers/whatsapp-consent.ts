@@ -82,7 +82,9 @@ export const whatsappConsentRouter = createTRPCRouter({
 
       return {
         status: consent.status,
-        transcript: consent.transcript ? JSON.parse(consent.transcript) : [],
+        transcript: consent.transcript
+          ? (JSON.parse(consent.transcript) as unknown[])
+          : [],
         decidedAt: consent.decidedAt,
         apt: consent.apt,
         visitor: consent.visitor,
@@ -125,7 +127,7 @@ export const whatsappConsentRouter = createTRPCRouter({
         company: c.company,
         createdAt: c.createdAt,
         decidedAt: c.decidedAt,
-        transcript: c.transcript ? JSON.parse(c.transcript) : [],
+        transcript: c.transcript ? (JSON.parse(c.transcript) as unknown[]) : [],
       }));
     }),
 

@@ -1,8 +1,15 @@
 import twilio from "twilio";
 import { env } from "~/env";
 
-// Initialize Twilio client
-const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+// Lazy initialization of Twilio client
+function getTwilioClient() {
+  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
+    throw new Error(
+      "Twilio credentials not configured. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.",
+    );
+  }
+  return twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+}
 
 export interface SendConsentParams {
   to: string; // Phone number with country code (e.g., +5511999999999)
@@ -28,10 +35,18 @@ export async function sendWhatsAppConsent(
 ): Promise<TwilioMessage> {
   const { to, apt, visitor, company } = params;
 
+  // Validate required environment variables
+  if (!env.TWILIO_WHATSAPP_FROM || !env.TWILIO_CONTENT_SID) {
+    throw new Error(
+      "Twilio WhatsApp configuration incomplete. Please set TWILIO_WHATSAPP_FROM and TWILIO_CONTENT_SID environment variables.",
+    );
+  }
+
   // Ensure phone number has whatsapp: prefix
   const toNumber = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
 
   try {
+    const client = getTwilioClient();
     const message = await client.messages.create({
       from: env.TWILIO_WHATSAPP_FROM,
       to: toNumber,
@@ -70,6 +85,11 @@ export function validateTwilioSignature(
   url: string,
   params: Record<string, string>,
 ): boolean {
+  if (!env.TWILIO_AUTH_TOKEN) {
+    throw new Error(
+      "TWILIO_AUTH_TOKEN not configured. Cannot validate webhook signature.",
+    );
+  }
   return twilio.validateRequest(
     env.TWILIO_AUTH_TOKEN,
     signature,
