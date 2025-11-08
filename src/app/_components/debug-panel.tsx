@@ -456,6 +456,129 @@ export function DebugPanel() {
         </div>
       )}
 
+      {/* Troubleshooting Guide */}
+      <div className="mt-6 rounded-lg bg-orange-500/10 border border-orange-500/30 p-4">
+        <h3 className="mb-3 text-xl font-semibold text-orange-300">
+          Troubleshooting Common Errors
+        </h3>
+        <div className="space-y-4 text-sm">
+          <details className="cursor-pointer">
+            <summary className="font-semibold text-orange-200">
+              Error: "Twilio could not find a Channel with the specified From
+              address"
+            </summary>
+            <div className="mt-2 space-y-2 text-gray-300 pl-4">
+              <p>
+                <strong>Cause:</strong> Your WhatsApp sender number is not
+                configured or activated in Twilio.
+              </p>
+              <p>
+                <strong>Solutions:</strong>
+              </p>
+              <ol className="list-decimal list-inside space-y-1 pl-2">
+                <li>
+                  <strong>If using Twilio Sandbox (for testing):</strong>
+                  <ul className="list-disc list-inside pl-6 mt-1">
+                    <li>Go to Twilio Console → Messaging → Try it out → WhatsApp</li>
+                    <li>
+                      Find your sandbox code (e.g., "join happy-dog")
+                    </li>
+                    <li>
+                      On WhatsApp, send that message to +14155238886
+                    </li>
+                    <li>
+                      Update TWILIO_WHATSAPP_FROM to: whatsapp:+14155238886
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>If using a Production WhatsApp Number:</strong>
+                  <ul className="list-disc list-inside pl-6 mt-1">
+                    <li>
+                      Go to Twilio Console → Messaging → Senders → WhatsApp
+                      Senders
+                    </li>
+                    <li>Copy your approved WhatsApp sender number</li>
+                    <li>
+                      Update TWILIO_WHATSAPP_FROM to: whatsapp:+[your-number]
+                    </li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          </details>
+
+          <details className="cursor-pointer">
+            <summary className="font-semibold text-orange-200">
+              Error: "Invalid signature" in webhook
+            </summary>
+            <div className="mt-2 space-y-2 text-gray-300 pl-4">
+              <p>
+                <strong>Cause:</strong> Twilio webhook validation failed
+              </p>
+              <p>
+                <strong>Solution:</strong> Ensure your TWILIO_STATUS_WEBHOOK URL
+                in Twilio Console exactly matches your deployed URL (including
+                https://)
+              </p>
+            </div>
+          </details>
+
+          <details className="cursor-pointer">
+            <summary className="font-semibold text-orange-200">
+              Status always shows "pending" - no response received
+            </summary>
+            <div className="mt-2 space-y-2 text-gray-300 pl-4">
+              <p>
+                <strong>Possible Causes:</strong>
+              </p>
+              <ol className="list-decimal list-inside space-y-1 pl-2">
+                <li>Webhook not configured in Twilio</li>
+                <li>WhatsApp message not delivered</li>
+                <li>Content template not approved</li>
+              </ol>
+              <p>
+                <strong>Check:</strong>
+              </p>
+              <ul className="list-disc list-inside pl-2">
+                <li>Twilio Console → Messaging → Logs</li>
+                <li>Verify webhook URL is set correctly</li>
+                <li>Ensure Content SID template is approved</li>
+              </ul>
+            </div>
+          </details>
+
+          <details className="cursor-pointer">
+            <summary className="font-semibold text-orange-200">
+              How to get your Twilio WhatsApp sender number
+            </summary>
+            <div className="mt-2 space-y-2 text-gray-300 pl-4">
+              <p>
+                <strong>Sandbox (Testing):</strong>
+              </p>
+              <ol className="list-decimal list-inside space-y-1 pl-2">
+                <li>Login to Twilio Console</li>
+                <li>Go to Messaging → Try it out → Send a WhatsApp message</li>
+                <li>Use: whatsapp:+14155238886</li>
+                <li>
+                  Remember to join sandbox by sending "join [your-code]" first!
+                </li>
+              </ol>
+              <p className="mt-2">
+                <strong>Production:</strong>
+              </p>
+              <ol className="list-decimal list-inside space-y-1 pl-2">
+                <li>Go to Messaging → Senders → WhatsApp Senders</li>
+                <li>Click on your approved sender</li>
+                <li>
+                  Copy the number in format: whatsapp:+[country][number]
+                </li>
+              </ol>
+            </div>
+          </details>
+        </div>
+      </div>
+
       {/* Environment Info */}
       <div className="mt-6 rounded-lg bg-white/10 p-4">
         <h3 className="mb-3 text-xl font-semibold">Configuration Guide</h3>

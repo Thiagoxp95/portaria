@@ -51,6 +51,13 @@ export async function GET() {
     diagnostics.recommendations.push(
       "Set TWILIO_WHATSAPP_FROM environment variable (e.g., whatsapp:+14155238886)",
     );
+  } else {
+    // Additional check for sandbox number
+    if (diagnostics.checks.twilio.whatsappFromValue === "whatsapp:+14155238886") {
+      diagnostics.recommendations.push(
+        "⚠️ Using Twilio Sandbox number. Join sandbox first: Send 'join <sandbox-code>' to +14155238886 on WhatsApp",
+      );
+    }
   }
   if (!diagnostics.checks.twilio.contentSid) {
     diagnostics.recommendations.push(
