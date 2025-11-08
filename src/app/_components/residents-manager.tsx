@@ -10,13 +10,6 @@ export function ResidentsManager() {
   const [residentName, setResidentName] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Query all residents (would need auth in production)
-  const { data: residents, refetch: refetchResidents } =
-    api.resident.getAllResidents.useQuery(
-      { includeInactive: true },
-      { enabled: false }, // Disabled for now since it requires auth
-    );
-
   // Add resident mutation
   const addResidentMutation = api.resident.addResident.useMutation({
     onSuccess: () => {
@@ -25,21 +18,6 @@ export function ResidentsManager() {
       setResidentName("");
       setNotes("");
       setIsAddingResident(false);
-      void refetchResidents();
-    },
-  });
-
-  // Update resident mutation
-  const updateResidentMutation = api.resident.updateResident.useMutation({
-    onSuccess: () => {
-      void refetchResidents();
-    },
-  });
-
-  // Delete resident mutation
-  const deleteResidentMutation = api.resident.deleteResident.useMutation({
-    onSuccess: () => {
-      void refetchResidents();
     },
   });
 
@@ -225,7 +203,7 @@ function TestApartmentLookup() {
   );
 
   const handleLookup = () => {
-    lookupMutation.refetch().then((result) => {
+    void lookupMutation.refetch().then((result) => {
       if (result.data) {
         setLastLookupResult(result.data);
       }

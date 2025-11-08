@@ -86,7 +86,7 @@ export const residentRouter = createTRPCRouter({
         );
       }
 
-      const result = await ctx.db.insert(residents).values({
+      await ctx.db.insert(residents).values({
         apartmentNumber: input.apartmentNumber,
         phoneNumber: input.phoneNumber,
         residentName: input.residentName,
@@ -116,7 +116,7 @@ export const residentRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { apartmentNumber, ...updateData } = input;
 
-      const result = await ctx.db
+      await ctx.db
         .update(residents)
         .set(updateData)
         .where(eq(residents.apartmentNumber, apartmentNumber));
