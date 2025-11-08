@@ -174,74 +174,71 @@ Simply deploy your Next.js app and use these endpoints:
 
 Configure these as HTTP REST tools in ElevenLabs instead of MCP tools.
 
-#### Option 3: Deploy as MCP SSE Endpoint (Advanced)
+#### Option 3: Deploy as MCP SSE Endpoint (Production-Ready) ✅
 
-For true MCP protocol support, create an SSE wrapper endpoint.
+**Good news!** The complete MCP SSE endpoint is already implemented at `/src/app/api/mcp/sse/route.ts`
 
-**Create `/src/app/api/mcp/sse/route.ts`:**
+This endpoint provides full MCP protocol support with:
+- ✅ SSE (Server-Sent Events) transport
+- ✅ JSON-RPC 2.0 protocol
+- ✅ MCP initialize, tools/list, and tools/call methods
+- ✅ Both `start_whatsapp_consent` and `get_consent_status` tools
+- ✅ Keep-alive pings for stable connections
+- ✅ Proper error handling
 
-```typescript
-import { NextRequest } from "next/server";
-import { db } from "~/server/db";
-import { whatsappConsents } from "~/server/db/schema";
-import { sendWhatsAppConsent } from "~/server/services/twilio";
-import { eq } from "drizzle-orm";
+**To use this endpoint:**
 
-export const runtime = "nodejs";
+1. **Deploy your Next.js app** to Vercel, Railway, or any hosting platform
+2. **Test the endpoint** at: `https://your-domain.com/api/mcp/test`
+   - This will show you the server status and available tools
+3. **Use the SSE endpoint:** `https://your-domain.com/api/mcp/sse`
 
-export async function GET(request: NextRequest) {
-  const encoder = new TextEncoder();
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      // MCP SSE handshake
-      controller.enqueue(encoder.encode("event: endpoint\n"));
-      controller.enqueue(encoder.encode(`data: /mcp\n\n`));
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-    },
-  });
-}
-
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-
-  // Handle MCP protocol messages here
-  // This is a simplified example - full implementation would handle
-  // all MCP protocol messages (list tools, call tool, etc.)
-
-  return Response.json({ result: "ok" });
-}
-```
-
-#### 3. Configure in ElevenLabs Platform
+#### 3. Configure in ElevenLabs Platform (For MCP Option 1 or 3)
 
 1. **Go to your ElevenLabs Agent settings**
-2. **Click "Add Custom MCP Server"**
-3. **Fill in the configuration:**
+2. **Navigate to "Integrations" or "Tools"**
+3. **Click "Add Custom MCP Server"**
+4. **Fill in the configuration:**
 
+**For Option 1 (mcp-proxy):**
+```
+Name: WhatsApp Consent Manager
+Description: Manages visitor consent requests via WhatsApp with approve/deny options
+Server Type: SSE
+Server URL: http://localhost:3001/sse (local testing)
+         OR https://your-ngrok-url.ngrok.io/sse (ngrok tunnel)
+
+Secret Token: (Leave empty)
+HTTP Headers: (Leave empty)
+Tool Approval Mode: "Always Ask" (Recommended for security)
+```
+
+**For Option 3 (Production SSE Endpoint):**
 ```
 Name: WhatsApp Consent Manager
 Description: Manages visitor consent requests via WhatsApp with approve/deny options
 Server Type: SSE
 Server URL: https://your-domain.com/api/mcp/sse
-  (or http://localhost:3001/sse if using mcp-proxy locally)
-  (or https://your-ngrok-url.ngrok.io/sse if using ngrok)
+         OR https://your-vercel-app.vercel.app/api/mcp/sse
 
-Secret Token: (Optional - leave empty for now)
-HTTP Headers: (Optional - leave empty for now)
-
+Secret Token: (Optional - add if you implement auth)
+HTTP Headers: (Optional)
 Tool Approval Mode: "Always Ask" (Recommended for security)
 ```
 
-4. **Trust the server** by checking "I trust this server"
-5. **Configure Tool Approval:** Set to "Always Ask" for maximum security
+5. **Trust the server** by checking "I trust this server"
+6. **Save the configuration**
+
+**Testing the Connection:**
+
+Visit `https://your-domain.com/api/mcp/test` to verify the server is running. You should see:
+```json
+{
+  "status": "ok",
+  "message": "MCP SSE server is running",
+  "tools": [...]
+}
+```
 
 **Alternative: Using HTTP REST Tools (Simpler)**
 
