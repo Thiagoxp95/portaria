@@ -56,6 +56,10 @@ app.get("/", (req, res) => {
 
 // SSE endpoint - establishes persistent connection
 app.get("/sse", (req, res) => {
+  console.log(`[SSE] Connection attempt from ${req.ip}`);
+  console.log(`[SSE] Headers:`, JSON.stringify(req.headers, null, 2));
+  console.log(`[SSE] Protocol: ${req.protocol}, Secure: ${req.secure}`);
+
   // Set SSE headers
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -64,10 +68,11 @@ app.get("/sse", (req, res) => {
 
   // Send endpoint event
   const sseEndpoint = `${req.protocol}://${req.get("host")}/message`;
+  console.log(`[SSE] Sending endpoint: ${sseEndpoint}`);
   res.write(`event: endpoint\n`);
   res.write(`data: ${sseEndpoint}\n\n`);
 
-  console.log(`[SSE] Client connected from ${req.ip}`);
+  console.log(`[SSE] Client connected successfully from ${req.ip}`);
 
   // Send periodic pings to keep connection alive
   const pingInterval = setInterval(() => {
