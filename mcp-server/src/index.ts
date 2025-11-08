@@ -43,8 +43,12 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     message: "Portaria MCP Server is running",
+    version: "1.0.0",
+    protocol: "MCP 2024-11-05",
+    transport: "SSE",
     endpoints: {
       sse: `${req.protocol}://${req.get("host")}/sse`,
+      message: `${req.protocol}://${req.get("host")}/message?sessionId=<generated>`,
       health: `${req.protocol}://${req.get("host")}/health`,
     },
     tools: [
@@ -52,6 +56,11 @@ app.get("/", (req, res) => {
       "start_whatsapp_consent",
       "get_consent_status",
     ],
+    instructions: {
+      "For ElevenLabs": "Use the SSE endpoint URL as your server URL",
+      "Test SSE": `curl -N ${req.protocol}://${req.get("host")}/sse`,
+      "Test Initialize": `curl -X POST "${req.protocol}://${req.get("host")}/message?sessionId=test" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'`,
+    },
   });
 });
 
