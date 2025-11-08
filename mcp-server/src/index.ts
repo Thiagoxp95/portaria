@@ -99,7 +99,66 @@ app.get("/sse", (req, res) => {
   });
 });
 
-// Message endpoint - handles MCP protocol messages
+// Streamable HTTP endpoint (2025-03-26 spec) - single endpoint for both GET and POST
+app.post("/mcp", async (req, res) => {
+  const sessionId = req.query.sessionId || randomUUID();
+  const startTime = Date.now();
+
+  try {
+    console.log(
+      `[MCP-HTTP] Received POST request (sessionId: ${sessionId}):`,
+      JSON.stringify(req.body, null, 2),
+    );
+
+    const response = await handleMCPRequest(req.body);
+    const duration = Date.now() - startTime;
+
+    // Notifications don't get responses
+    if (response === null) {
+      console.log(`[MCP-HTTP] Notification processed (${duration}ms)`);
+      res.status(204).end();
+      return;
+    }
+
+    console.log(`[MCP-HTTP] Sending JSON response (${duration}ms)`);
+    res.setHeader("Mcp-Session-Id", sessionId);
+    res.json(response);
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[MCP-HTTP] Error (${duration}ms):`, error);
+    res.status(500).json({
+      jsonrpc: "2.0",
+      id: req.body?.id,
+      error: {
+        code: -32603,
+        message: error instanceof Error ? error.message : "Internal error",
+      },
+    });
+  }
+});
+
+app.get("/mcp", (req, res) => {
+  const sessionId = randomUUID();
+  console.log(`[MCP-HTTP] GET request for SSE stream, sessionId: ${sessionId}`);
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.setHeader("Mcp-Session-Id", sessionId);
+
+  // Send periodic pings
+  const pingInterval = setInterval(() => {
+    res.write(`: ping\n\n`);
+  }, 30000);
+
+  req.on("close", () => {
+    clearInterval(pingInterval);
+    console.log(`[MCP-HTTP] SSE stream closed for sessionId: ${sessionId}`);
+  });
+});
+
+// Message endpoint - handles MCP protocol messages (legacy SSE transport)
 app.post("/message", async (req, res) => {
   const sessionId = req.query.sessionId;
   const startTime = Date.now();
