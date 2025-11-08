@@ -101,7 +101,7 @@ app.get("/sse", (req, res) => {
 
 // Streamable HTTP endpoint (2025-03-26 spec) - single endpoint for both GET and POST
 app.post("/mcp", async (req, res) => {
-  const sessionId = req.query.sessionId || randomUUID();
+  const sessionId = (req.query.sessionId as string) || randomUUID();
   const startTime = Date.now();
 
   try {
@@ -160,7 +160,7 @@ app.get("/mcp", (req, res) => {
 
 // Message endpoint - handles MCP protocol messages (legacy SSE transport)
 app.post("/message", async (req, res) => {
-  const sessionId = req.query.sessionId;
+  const sessionId = req.query.sessionId as string;
   const startTime = Date.now();
 
   try {
