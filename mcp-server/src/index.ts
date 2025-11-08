@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import { randomUUID } from "crypto";
 import { handleMCPRequest } from "./mcp-handler.js";
 
 // Load environment variables
@@ -56,7 +57,10 @@ app.get("/", (req, res) => {
 
 // SSE endpoint - establishes persistent connection
 app.get("/sse", (req, res) => {
-  console.log(`[SSE] Connection attempt from ${req.ip}`);
+  // Generate unique session ID for this connection
+  const sessionId = randomUUID();
+
+  console.log(`[SSE] Connection attempt from ${req.ip}, sessionId: ${sessionId}`);
   console.log(`[SSE] Headers:`, JSON.stringify(req.headers, null, 2));
   console.log(`[SSE] Protocol: ${req.protocol}, Secure: ${req.secure}`);
 
@@ -66,8 +70,8 @@ app.get("/sse", (req, res) => {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("X-Accel-Buffering", "no");
 
-  // Send endpoint event
-  const sseEndpoint = `${req.protocol}://${req.get("host")}/message`;
+  // Send endpoint event with sessionId (required by MCP spec)
+  const sseEndpoint = `${req.protocol}://${req.get("host")}/message?sessionId=${sessionId}`;
   console.log(`[SSE] Sending endpoint: ${sseEndpoint}`);
   res.write(`event: endpoint\n`);
   res.write(`data: ${sseEndpoint}\n\n`);
@@ -88,8 +92,12 @@ app.get("/sse", (req, res) => {
 
 // Message endpoint - handles MCP protocol messages
 app.post("/message", async (req, res) => {
+  const sessionId = req.query.sessionId;
   try {
-    console.log(`[MCP] Received request:`, JSON.stringify(req.body, null, 2));
+    console.log(
+      `[MCP] Received request (sessionId: ${sessionId}):`,
+      JSON.stringify(req.body, null, 2),
+    );
 
     const response = await handleMCPRequest(req.body);
 
