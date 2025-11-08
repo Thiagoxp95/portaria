@@ -464,8 +464,8 @@ export function DebugPanel() {
         <div className="space-y-4 text-sm">
           <details className="cursor-pointer">
             <summary className="font-semibold text-orange-200">
-              Error: "Twilio could not find a Channel with the specified From
-              address"
+              Error: &ldquo;Twilio could not find a Channel with the specified
+              From address&rdquo;
             </summary>
             <div className="mt-2 space-y-2 text-gray-300 pl-4">
               <p>
@@ -481,7 +481,8 @@ export function DebugPanel() {
                   <ul className="list-disc list-inside pl-6 mt-1">
                     <li>Go to Twilio Console → Messaging → Try it out → WhatsApp</li>
                     <li>
-                      Find your sandbox code (e.g., "join happy-dog")
+                      Find your sandbox code (e.g., &ldquo;join
+                      happy-dog&rdquo;)
                     </li>
                     <li>
                       On WhatsApp, send that message to +14155238886
@@ -510,7 +511,7 @@ export function DebugPanel() {
 
           <details className="cursor-pointer">
             <summary className="font-semibold text-orange-200">
-              Error: "Invalid signature" in webhook
+              Error: &ldquo;Invalid signature&rdquo; in webhook
             </summary>
             <div className="mt-2 space-y-2 text-gray-300 pl-4">
               <p>
@@ -526,7 +527,7 @@ export function DebugPanel() {
 
           <details className="cursor-pointer">
             <summary className="font-semibold text-orange-200">
-              Status always shows "pending" - no response received
+              Status always shows &ldquo;pending&rdquo; - no response received
             </summary>
             <div className="mt-2 space-y-2 text-gray-300 pl-4">
               <p>
@@ -561,7 +562,8 @@ export function DebugPanel() {
                 <li>Go to Messaging → Try it out → Send a WhatsApp message</li>
                 <li>Use: whatsapp:+14155238886</li>
                 <li>
-                  Remember to join sandbox by sending "join [your-code]" first!
+                  Remember to join sandbox by sending &ldquo;join
+                  [your-code]&rdquo; first!
                 </li>
               </ol>
               <p className="mt-2">

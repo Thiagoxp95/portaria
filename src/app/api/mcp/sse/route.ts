@@ -268,7 +268,7 @@ export async function GET(request: NextRequest) {
         const pingInterval = setInterval(() => {
           try {
             controller.enqueue(encoder.encode(`: ping\n\n`));
-          } catch (error) {
+          } catch {
             clearInterval(pingInterval);
           }
         }, 30000); // Ping every 30 seconds
