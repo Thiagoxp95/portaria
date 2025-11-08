@@ -1,10 +1,20 @@
 import express from "express";
 import dotenv from "dotenv";
 import { randomUUID } from "crypto";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import { handleMCPRequest } from "./mcp-handler.js";
+import * as schema from "./schema.js";
 
 // Load environment variables
 dotenv.config();
+
+// Initialize database
+const client = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN!,
+});
+const db = drizzle(client, { schema });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -212,10 +222,117 @@ app.post("/message", async (req, res) => {
   }
 });
 
+// Twilio webhook endpoint - handles WhatsApp button responses
+app.post("/webhook/twilio/whatsapp", express.urlencoded({ extended: false }), async (req, res) => {
+  try {
+    console.log("[Webhook] Received Twilio WhatsApp webhook:", JSON.stringify(req.body, null, 2));
+
+    const {
+      Body: messageBody,
+      From: from,
+      MessageSid: messageSid,
+      SmsStatus: status,
+      ButtonPayload: buttonPayload,
+    } = req.body;
+
+    // Determine the user's response based on your button IDs
+    let userResponse: "approved" | "denied" | "failed";
+
+    if (buttonPayload) {
+      const payload = buttonPayload.toLowerCase();
+      // Match your button IDs: "authorize" and "decline"
+      if (payload === "authorize" || payload === "approve" || payload === "approved") {
+        userResponse = "approved";
+      } else if (payload === "decline" || payload === "deny" || payload === "denied") {
+        userResponse = "denied";
+      } else {
+        userResponse = "failed";
+      }
+    } else {
+      // Handle text responses
+      const reply = (messageBody ?? "").trim().toLowerCase();
+      const approvedPattern = /^(approve|approved|yes|sim|oui|sí|si|ok|okay|autorizar)$/i;
+      const deniedPattern = /^(deny|denied|no|nao|não|non|negar)$/i;
+
+      if (approvedPattern.test(reply)) {
+        userResponse = "approved";
+      } else if (deniedPattern.test(reply)) {
+        userResponse = "denied";
+      } else {
+        userResponse = "failed";
+      }
+    }
+
+    // Find the pending consent for this phone number
+    const toNumber = from?.replace("whatsapp:", "") ?? "";
+
+    const { eq, and, desc } = await import("drizzle-orm");
+    const existingConsent = await db.query.whatsappConsents.findFirst({
+      where: and(
+        eq(schema.whatsappConsents.toNumber, toNumber),
+        eq(schema.whatsappConsents.status, "pending"),
+      ),
+      orderBy: [desc(schema.whatsappConsents.createdAt)],
+    });
+
+    if (!existingConsent) {
+      console.warn(`[Webhook] No pending consent found for: ${toNumber}`);
+      return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>No pending request found.</Message>
+</Response>`);
+    }
+
+    // Update the consent record
+    const transcript = existingConsent.transcript
+      ? JSON.parse(existingConsent.transcript)
+      : [];
+
+    transcript.push({
+      type: "inbound",
+      body: messageBody,
+      buttonPayload,
+      sid: messageSid,
+      status,
+      timestamp: new Date().toISOString(),
+      decision: userResponse,
+    });
+
+    await db
+      .update(schema.whatsappConsents)
+      .set({
+        status: userResponse,
+        decidedAt: new Date(),
+        transcript: JSON.stringify(transcript),
+      })
+      .where(eq(schema.whatsappConsents.conversationSid, existingConsent.conversationSid));
+
+    console.log(`[Webhook] Consent ${existingConsent.conversationSid} updated to: ${userResponse}`);
+
+    // Send confirmation message
+    const confirmationMessage =
+      userResponse === "approved"
+        ? "Thank you! Entry has been approved. ✅"
+        : userResponse === "denied"
+          ? "Thank you! Entry has been denied. ❌"
+          : "Sorry, I didn't understand your response.";
+
+    res.setHeader("Content-Type", "text/xml");
+    res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${confirmationMessage}</Message>
+</Response>`);
+  } catch (error) {
+    console.error("[Webhook] Error processing Twilio webhook:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Portaria MCP Server running on port ${PORT}`);
   console.log(`📡 SSE endpoint: http://localhost:${PORT}/sse`);
   console.log(`📨 Message endpoint: http://localhost:${PORT}/message`);
+  console.log(`🔔 Webhook endpoint: http://localhost:${PORT}/webhook/twilio/whatsapp`);
   console.log(`💚 Health check: http://localhost:${PORT}/health`);
 });
