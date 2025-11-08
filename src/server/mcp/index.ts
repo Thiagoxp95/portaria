@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+
+// Load environment variables FIRST before any other imports
+import dotenv from "dotenv";
+dotenv.config();
+
+// Now import everything else after env is loaded
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -8,9 +14,9 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { db } from "~/server/db";
-import { whatsappConsents } from "~/server/db/schema";
-import { sendWhatsAppConsent } from "~/server/services/twilio";
+import { db } from "~/server/db/index.js";
+import { whatsappConsents } from "~/server/db/schema.js";
+import { sendWhatsAppConsent } from "~/server/services/twilio.js";
 
 /**
  * MCP Server for WhatsApp Consent Flow

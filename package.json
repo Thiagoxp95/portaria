@@ -15,10 +15,10 @@
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "mcp:server": "tsx src/server/mcp/index.ts",
+    "mcp:server": "tsx --env-file=.env src/server/mcp/index.ts",
     "preview": "next build && next start",
     "start": "next start",
-    "timeout:check": "tsx src/server/jobs/check-consent-timeouts.ts",
+    "timeout:check": "tsx --env-file=.env src/server/jobs/check-consent-timeouts.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -18,6 +18,10 @@
  * - Or a dedicated cron job service
  */
 
+// Load environment variables from .env file
+import dotenv from "dotenv";
+dotenv.config();
+
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import { whatsappConsents } from "~/server/db/schema";
