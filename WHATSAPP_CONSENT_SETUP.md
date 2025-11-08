@@ -135,50 +135,169 @@ console.log(status.status); // "pending", "approved", "denied", etc.
 
 ### B. Using MCP Server (For ElevenLabs Agents)
 
-#### 1. Start the MCP Server
+**Important:** ElevenLabs requires MCP servers to use SSE (Server-Sent Events) or HTTP Streamable transport. Our MCP server uses stdio, so we need to use a proxy or deploy it as an HTTP endpoint.
+
+#### Option 1: Using mcp-proxy (Recommended for Development/Testing)
+
+1. **Install mcp-proxy globally:**
 
 ```bash
-pnpm mcp:server
+npm install -g @sparfenyuk/mcp-proxy
 ```
 
-#### 2. Configure ElevenLabs Agent
+2. **Start your MCP server with mcp-proxy:**
 
-Add the MCP server to your ElevenLabs Agent configuration:
+```bash
+# Start the proxy on port 3001 (or any available port)
+mcp-proxy --port 3001 -- pnpm mcp:server
+```
 
-```json
-{
-  "mcpServers": {
-    "whatsapp-consent": {
-      "command": "node",
-      "args": ["/path/to/portaria/dist/server/mcp/index.js"],
-      "env": {
-        "DATABASE_URL": "your-turso-url",
-        "DATABASE_AUTH_TOKEN": "your-turso-token",
-        "TWILIO_ACCOUNT_SID": "...",
-        "TWILIO_AUTH_TOKEN": "...",
-        "TWILIO_WHATSAPP_FROM": "...",
-        "TWILIO_CONTENT_SID": "..."
-      }
-    }
-  }
+This will expose your stdio MCP server as an SSE endpoint at `http://localhost:3001/sse`
+
+3. **For production, use ngrok or deploy to a server:**
+
+```bash
+# Using ngrok for testing
+ngrok http 3001
+```
+
+This gives you a public URL like `https://abc123.ngrok.io`
+
+#### Option 2: Use tRPC API Directly (Simplest for Production)
+
+**Note:** For most use cases, you can skip MCP entirely and call the tRPC API directly from your ElevenLabs agent using custom tools or function calling.
+
+Simply deploy your Next.js app and use these endpoints:
+
+- **Start Consent:** `POST https://your-domain.com/api/trpc/whatsappConsent.startConsent`
+- **Get Status:** `GET https://your-domain.com/api/trpc/whatsappConsent.getConsentStatus`
+
+Configure these as HTTP REST tools in ElevenLabs instead of MCP tools.
+
+#### Option 3: Deploy as MCP SSE Endpoint (Advanced)
+
+For true MCP protocol support, create an SSE wrapper endpoint.
+
+**Create `/src/app/api/mcp/sse/route.ts`:**
+
+```typescript
+import { NextRequest } from "next/server";
+import { db } from "~/server/db";
+import { whatsappConsents } from "~/server/db/schema";
+import { sendWhatsAppConsent } from "~/server/services/twilio";
+import { eq } from "drizzle-orm";
+
+export const runtime = "nodejs";
+
+export async function GET(request: NextRequest) {
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      // MCP SSE handshake
+      controller.enqueue(encoder.encode("event: endpoint\n"));
+      controller.enqueue(encoder.encode(`data: /mcp\n\n`));
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+
+  // Handle MCP protocol messages here
+  // This is a simplified example - full implementation would handle
+  // all MCP protocol messages (list tools, call tool, etc.)
+
+  return Response.json({ result: "ok" });
 }
 ```
 
-#### 3. Agent Prompt Example
+#### 3. Configure in ElevenLabs Platform
+
+1. **Go to your ElevenLabs Agent settings**
+2. **Click "Add Custom MCP Server"**
+3. **Fill in the configuration:**
+
+```
+Name: WhatsApp Consent Manager
+Description: Manages visitor consent requests via WhatsApp with approve/deny options
+Server Type: SSE
+Server URL: https://your-domain.com/api/mcp/sse
+  (or http://localhost:3001/sse if using mcp-proxy locally)
+  (or https://your-ngrok-url.ngrok.io/sse if using ngrok)
+
+Secret Token: (Optional - leave empty for now)
+HTTP Headers: (Optional - leave empty for now)
+
+Tool Approval Mode: "Always Ask" (Recommended for security)
+```
+
+4. **Trust the server** by checking "I trust this server"
+5. **Configure Tool Approval:** Set to "Always Ask" for maximum security
+
+**Alternative: Using HTTP REST Tools (Simpler)**
+
+If using Option 2 (tRPC directly), configure custom HTTP tools instead:
+
+1. In ElevenLabs Agent settings, go to "Tools" → "Add Custom Tool"
+2. **Tool 1 - Start Consent:**
+   ```
+   Name: start_whatsapp_consent
+   Description: Sends a WhatsApp consent request to a resident
+   Method: POST
+   URL: https://your-domain.com/api/trpc/whatsappConsent.startConsent
+   Headers:
+     Content-Type: application/json
+   Body:
+     {
+       "to": "{{phone}}",
+       "apt": "{{apartment}}",
+       "visitor": "{{visitor_name}}",
+       "company": "{{company_name}}",
+       "ttl": 300
+     }
+   ```
+
+3. **Tool 2 - Get Status:**
+   ```
+   Name: get_consent_status
+   Description: Checks the status of a consent request
+   Method: POST
+   URL: https://your-domain.com/api/trpc/whatsappConsent.getConsentStatus
+   Headers:
+     Content-Type: application/json
+   Body:
+     {
+       "conversationSid": "{{conversation_sid}}"
+     }
+   ```
+
+#### 6. Agent Prompt Example
 
 ```
 When a visitor arrives:
-1. Call start_whatsapp_consent with apartment number, visitor name, and company
-2. Save the conversationSid
-3. Wait 10 seconds
-4. Call get_consent_status with the conversationSid
-5. If status is "pending", wait another 10 seconds and check again (repeat for up to 5 minutes)
-6. If status is "approved", say "Entry approved!" and proceed
-7. If status is "denied", say "Entry denied" and end
-8. If status is "no_answer" after 5 minutes, say "No response received"
+1. Greet the visitor and ask for their name and company
+2. Ask which apartment they're visiting
+3. Call start_whatsapp_consent with the collected information
+4. Save the conversationSid from the response
+5. Inform the visitor: "I'm sending a WhatsApp message to the resident. Please wait."
+6. Wait 10 seconds, then call get_consent_status
+7. If status is "pending", tell visitor "Still waiting for response..." and wait another 10 seconds
+8. Repeat checking every 10 seconds for up to 5 minutes (30 attempts)
+9. If status is "approved", say "Entry approved! Please proceed to apartment [number]."
+10. If status is "denied", say "I'm sorry, the resident has denied entry."
+11. If status is "no_answer" after timeout, say "The resident hasn't responded. Please try calling them directly."
 ```
 
-#### 4. Available MCP Tools
+#### 7. Available MCP Tools
 
 **Tool: `start_whatsapp_consent`**
 ```typescript
